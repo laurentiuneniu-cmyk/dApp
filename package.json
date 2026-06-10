@@ -1,0 +1,9 @@
+{
+  "name": "tron-dapp-wc2-static",
+  "version": "1.0.0",
+  "description": "Static TRON dApp using WalletConnect v2 and ethers.js for ABI encoding",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "license": "MIT"
+}
